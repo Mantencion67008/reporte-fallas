@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte de Falla — Molde o Máquina</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --surface: #181c25; --surface2: #1e2330;
+    --border: #2a3040; --border2: #3a4460;
+    --text: #e4e8f0; --text2: #8a93a8; --text3: #5a6278;
+    --accent: #3a7bd5; --accent-dim: rgba(58,123,213,0.15);
+    --alta: #e05252; --alta-bg: rgba(224,82,82,0.12);
+    --media: #d4933a; --baja: #4ca87a; --p0: #7a6fcf;
+    --font: 'IBM Plex Sans', sans-serif; --mono: 'IBM Plex Mono', monospace;
+    --radius: 4px;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; min-height: 100vh; overflow-x: auto; }
+
+  /* LOGIN OVERLAY */
+  #login-screen {
+    position: fixed; inset: 0; background: rgba(15,17,23,0.96);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; z-index: 500;
+  }
+  #login-screen h1 { font-size: 20px; font-weight: 600; }
+  #login-screen p { font-size: 13px; color: var(--text2); text-align: center; max-width: 340px; }
+  .btn-google {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; color: #333; border: none;
+    padding: 10px 20px; border-radius: 4px; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: box-shadow 0.15s;
+  }
+  .btn-google:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  .btn-google svg { width: 20px; height: 20px; }
+
+  /* HEADER */
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 24px; display: flex; align-items: center; gap: 20px;
+    height: 52px; position: sticky; top: 0; z-index: 100;
+  }
+  .header-logo { font-family: var(--mono); font-size: 12px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; }
+  .header-title { font-size: 14px; font-weight: 600; flex: 1; }
+  .header-user { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+  .header-user img { width: 26px; height: 26px; border-radius: 50%; }
+  .header-stats { display: flex; gap: 20px; }
+  .header-stat { display: flex; flex-direction: column; align-items: flex-end; }
+  .header-stat-val { font-family: var(--mono); font-size: 16px; font-weight: 500; line-height: 1; }
+  .header-stat-val.red { color: var(--alta); }
+  .header-stat-val.blue { color: var(--accent); }
+  .header-stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+
+  /* TOOLBAR */
+  .toolbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 8px 24px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    position: sticky; top: 52px; z-index: 90;
+  }
+  .toolbar-group { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .toolbar-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+  select, input[type="text"] {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--font); font-size: 13px; padding: 5px 8px;
+    border-radius: var(--radius); outline: none; height: 30px; max-width: 160px;
+  }
+  select:focus, input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"] { width: 180px; max-width: 180px; }
+  .btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text2);
+    font-family: var(--font); font-size: 12px; padding: 5px 12px;
+    border-radius: var(--radius); cursor: pointer; height: 30px;
+    display: flex; align-items: center; gap: 5px; flex-shrink: 0; white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+  .btn.primary:hover { background: #2e65b8; }
+  .divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
+
+  /* TABLE */
+  .main { padding: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1450px; }
+  thead { position: sticky; top: 0; z-index: 50; }
+  th {
+    background: var(--surface2); color: var(--text3); font-family: var(--mono);
+    font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 8px 12px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+    text-align: left; white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  th:hover { color: var(--text); background: var(--border); }
+  th.sorted { color: var(--accent); }
+  th .sa { margin-left: 4px; opacity: 0.5; }
+  th.sorted .sa { opacity: 1; }
+  td { padding: 6px 10px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+  tr:hover td { background: var(--surface2); }
+
+  td.num { font-family: var(--mono); font-size: 11px; color: var(--text3); width: 40px; text-align: right; }
+  td.fecha { font-family: var(--mono); font-size: 11px; color: var(--text2); white-space: nowrap; }
+  td.molde { font-weight: 500; max-width: 180px; }
+  td.molde.critico { color: var(--alta); }
+  td.inspector { color: var(--text2); white-space: nowrap; }
+  td.ro { color: var(--text2); max-width: 280px; word-wrap: break-word; white-space: normal; }
+
+  /* BADGES */
+  .badge-pri, .badge-est {
+    display: inline-block; padding: 2px 8px; border-radius: 2px;
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: 0.04em; white-space: nowrap; border: 1px solid transparent;
+  }
+  .pri-alta  { border-color: var(--alta);  color: var(--alta); }
+  .pri-media { border-color: var(--media); color: var(--media); }
+  .pri-baja  { border-color: var(--baja);  color: var(--baja); }
+  .pri-p0    { border-color: var(--p0);    color: var(--p0); }
+  .est-ni    { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .est-curso { border-color: var(--media); color: var(--media); }
+  .est-bloq  { border-color: var(--alta);  color: var(--alta); }
+  .est-done  { border-color: var(--baja);  color: var(--baja); }
+
+  /* INLINE EDITABLE FIELDS */
+  .cell-edit {
+    background: transparent; border: 1px solid transparent; color: var(--text);
+    font-family: var(--font); font-size: 12px; padding: 3px 6px;
+    border-radius: var(--radius); outline: none; width: 100%; min-width: 100px;
+    transition: border-color 0.15s; height: auto;
+  }
+  .cell-edit:hover { border-color: var(--border); }
+  .cell-edit:focus { border-color: var(--accent); background: var(--surface2); }
+  .cell-select {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--mono); font-size: 11px; padding: 2px 6px;
+    border-radius: 2px; outline: none; width: 100%; min-width: 110px;
+    cursor: pointer; height: auto; transition: border-color 0.15s;
+  }
+  .cell-select:focus { border-color: var(--accent); }
+  .cell-select.pri-alta  { border-color: var(--alta);  color: var(--alta); }
+  .cell-select.pri-media { border-color: var(--media); color: var(--media); }
+  .cell-select.pri-baja  { border-color: var(--baja);  color: var(--baja); }
+  .cell-select.pri-p0    { border-color: var(--p0);    color: var(--p0); }
+  .cell-select.est-ni    { border-color: var(--accent); color: var(--accent); }
+  .cell-select.est-curso { border-color: var(--media); color: var(--media); }
+  .cell-select.est-bloq  { border-color: var(--alta);  color: var(--alta); }
+  .cell-select.est-done  { border-color: var(--baja);  color: var(--baja); }
+  .cell-select.tec-val   { color: var(--accent); font-weight: 500; }
+
+  input[type="date"].cell-edit { min-width: 130px; color-scheme: dark; }
+
+  .empty-row td { text-align: center; padding: 48px; color: var(--text3); }
+  .saving-indicator { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--media); margin-left: 6px; vertical-align: middle; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); padding: 10px 18px; border-radius: var(--radius);
+    font-size: 13px; z-index: 999; opacity: 0; transform: translateY(8px);
+    transition: all 0.2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--baja); margin-right: 8px; vertical-align: middle; }
+  .toast.err .dot { background: var(--alta); }
+
+  footer {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 8px 24px; display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono); font-size: 11px; color: var(--text3);
+    position: sticky; bottom: 0; z-index: 100;
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <h1>Reporte de Falla — Molde o Máquina</h1>
+  <p>Inicia sesión con tu cuenta de Google para ver y editar los reportes de falla.</p>
+  <button class="btn-google" onclick="iniciarLogin()">
+    <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Iniciar sesión con Google
+  </button>
+</div>
+
+<header>
+  <span class="header-logo">Planta / Fallas</span>
+  <span class="header-title">Reporte de Falla — Molde o Máquina</span>
+  <div class="header-user" id="header-user" style="display:none">
+    <img id="user-avatar" src="" alt="">
+    <span id="user-name"></span>
+    <button class="btn" onclick="cerrarSesion()" style="margin-left:4px">Salir</button>
+  </div>
+  <div class="header-stats">
+    <div class="header-stat"><span class="header-stat-val" id="stat-total">—</span><span class="header-stat-label">Registros</span></div>
+    <div class="header-stat"><span class="header-stat-val red" id="stat-alta">—</span><span class="header-stat-label">P. Alta</span></div>
+    <div class="header-stat"><span class="header-stat-val blue" id="stat-ni">—</span><span class="header-stat-label">No iniciadas</span></div>
+    <div class="header-stat"><span class="header-stat-val" id="stat-sinasig">—</span><span class="header-stat-label">Sin asignar</span></div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-group"><span class="toolbar-label">Reportado por</span><select id="f-inspector"><option value="">Todos</option></select></div>
+  <div class="toolbar-group"><span class="toolbar-label">Origen</span><select id="f-origen"><option value="">Todos</option></select></div>
+  <div class="toolbar-group"><span class="toolbar-label">Máquina</span><select id="f-maquina"><option value="">Todas</option></select></div>
+  <div class="toolbar-group"><span class="toolbar-label">Molde</span><select id="f-molde"><option value="">Todos</option></select></div>
+  <div class="toolbar-group"><span class="toolbar-label">Técnico</span><select id="f-tecnico"><option value="">Todos</option><option value="__sin__">Sin asignar</option></select></div>
+  <div class="toolbar-group"><span class="toolbar-label">Prioridad</span>
+    <select id="f-prioridad">
+      <option value="">Todas</option>
+      <option value="P. Alta">Alta</option>
+      <option value="P. Media">Media</option>
+      <option value="P. Baja">Baja</option>
+      <option value="P.0">P.0</option>
+      <option value="__sin__">Sin prioridad</option>
+    </select>
+  </div>
+  <div class="toolbar-group"><span class="toolbar-label">Estado</span>
+    <select id="f-estado">
+      <option value="">Todos</option>
+      <option value="No iniciada">No iniciada</option>
+      <option value="En curso">En curso</option>
+      <option value="Bloqueada">Bloqueada</option>
+      <option value="Completada">Completada</option>
+    </select>
+  </div>
+  <div class="toolbar-group"><input type="text" id="f-buscar" placeholder="Buscar molde o problema…"></div>
+  <div class="divider"></div>
+  <button class="btn" onclick="limpiarFiltros()">↺ Limpiar</button>
+  <button class="btn" onclick="recargar()">⟳ Recargar</button>
+  <button class="btn primary" onclick="guardarCSV()">↓ CSV</button>
+</div>
+
+<div class="main">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:40px">#</th>
+        <th onclick="sortBy('fecha')">Fecha <span class="sa">↕</span></th>
+        <th onclick="sortBy('inspector')">Reportado Por <span class="sa">↕</span></th>
+        <th onclick="sortBy('origen')">Origen <span class="sa">↕</span></th>
+        <th onclick="sortBy('maquina')">Máquina <span class="sa">↕</span></th>
+        <th onclick="sortBy('molde')">Molde <span class="sa">↕</span></th>
+        <th>Problema</th>
+        <th onclick="sortBy('prioridad')">Prioridad <span class="sa">↕</span></th>
+        <th>Técnico</th>
+        <th>Est. Repuestos</th>
+        <th>Estado</th>
+        <th>Fecha Inicio</th>
+        <th>Fecha Fin</th>
+        <th>Notas</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<footer>
+  <span id="footer-count">—</span>
+  <div style="display:flex;gap:16px;align-items:center">
+    <span>Google Sheets · en vivo</span>
+    <span id="footer-time">—</span>
+    <span id="saving-ind" style="display:none"><span class="saving-indicator"></span> Guardando…</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast"><span class="dot"></span><span id="toast-msg"></span></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const CLIENT_ID  = '383025085004-l9dai8gv5758difsn66mt956fddpro4d.apps.googleusercontent.com';
+const API_KEY    = 'AIzaSyCPJPizmB7-ji8LeXIlAgVrnHx4bcMblBM';
+const SHEET_ID   = '1YKbJOCG8Y56-1MVqweQ5AoP_uDlPYhhFX-oHPYlCmUk';
+const SHEET_TAB  = 'Respuestas de formulario 1';
+const SCOPES     = 'https://www.googleapis.com/auth/spreadsheets';
+const TECNICOS   = ['Aarón Oropeza','Christian Rocco','Daniel Serpa','Francisco Romero','Omar García','Rodrigo Iturriaga'];
+
+const CRITICOS = new Set([
+  'Caja Organizadora 140 lts. - Base','Caja Organizadora 140 lts. - Tapa',
+  'Caja Organizadora 20 lts. - Base','Caja Organizadora 30 lts. - Base',
+  'Caja Ratan 50 lts. - Base','Caja Ratan 50 lts. - Tapa',
+  'Canasta Rectangular','Cesto de Ropa II',
+  'Macetero Cuadrado 30 cm','Macetero Cuadrado 40 cm',
+  'Macetero Redondo 30 cm','Macetero Redondo 40 cm',
+  'Papelero v/v 15 lts. - Base','Papelero v/v 15 lts. - Tapa Recta','Papelero v/v 15 lts. - Vaiven',
+  'Papelero v/v 30 lts. - Base','Papelero v/v 30 lts. - Tapa Recta','Papelero v/v 30 lts. - Vaiven',
+  'Papelero v/v 60 lts. - Base','Papelero v/v 60 lts. - Tapa Recta','Papelero v/v 60 lts. - Vaiven',
+  'Papelero v/v 7 lts. - Base','Papelero v/v 7 lts. - Tapa Recta','Papelero v/v 7 lts. - Vaiven',
+]);
+
+// Columnas (0-based): A=0 fecha, B=1 inspector(reportado por), C=2 origen,
+// D=3 maquina, E=4 molde, F=5 problema, G=6 prioridad, H=7 tecnico,
+// I=8 estRep, J=9 estado, K=10 fechaIni, L=11 fechaFin, M=12 notas
+const COL = { prioridad:6, tecnico:7, estRep:8, estado:9, fechaIni:10, fechaFin:11, notas:12 };
+
+// ── STATE ────────────────────────────────────────────────
+let tokenClient, accessToken = null;
+let datos = [], sortCol = 'fecha', sortDir = 1;
+
+// ── DATE HELPERS ─────────────────────────────────────────
+function toInputDate(s) {
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const p = s.split(' ')[0].split('/');
+  if (p.length === 3) {
+    const d = p[0].padStart(2,'0'), m = p[1].padStart(2,'0'), y = p[2];
+    return `${y}-${m}-${d}`;
+  }
+  return '';
+}
+function toSheetsDate(s) {
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y,m,d] = s.split('-');
+    return `${d}/${m}/${y}`;
+  }
+  return s;
+}
+
+// ── AUTH ─────────────────────────────────────────────────
+function initGoogleAuth() {
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (resp) => {
+        if (resp.error) { showToast('Error de autenticación: ' + resp.error, true); return; }
+        accessToken = resp.access_token;
+        try {
+          const me = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+            { headers: { Authorization: 'Bearer ' + accessToken } }).then(r=>r.json());
+          document.getElementById('user-name').textContent = me.name || me.email;
+          if (me.picture) document.getElementById('user-avatar').src = me.picture;
+          document.getElementById('header-user').style.display = 'flex';
+        } catch(e) {}
+        document.getElementById('login-screen').style.display = 'none';
+        cargar();
+      }
+    });
+  } catch(e) {
+    console.error('Error inicializando Google Auth:', e);
+    showToast('Error al inicializar Google Auth', true);
+  }
+}
+function iniciarLogin() {
+  if (!tokenClient) {
+    showToast('Google Auth aún no está listo, espera un momento…', true);
+    setTimeout(iniciarLogin, 1000);
+    return;
+  }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+function cerrarSesion() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('header-user').style.display = 'none';
+  render();
+}
+
+// ── HELPERS ──────────────────────────────────────────────
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function parseFecha(s) {
+  const p2 = (s||'').split(' ')[0].split('/');
+  if (p2.length === 3) return new Date(parseInt(p2[2]), parseInt(p2[1])-1, parseInt(p2[0]));
+  return new Date(0);
+}
+function priOrder(p) {
+  return p==='P. Alta'?1:p==='P. Media'?2:p==='P. Baja'?3:p==='P.0'?4:5;
+}
+function showToast(msg, err) {
+  const el = document.getElementById('toast');
+  el.className = 'toast' + (err?' err':'');
+  document.getElementById('toast-msg').textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2500);
+}
+function setSaving(on) {
+  document.getElementById('saving-ind').style.display = on ? 'inline-flex' : 'none';
+}
+
+// ── LOAD DATA ────────────────────────────────────────────
+async function cargar() {
+  document.getElementById('tbody').innerHTML =
+    '<tr class="empty-row"><td colspan="14" style="color:var(--text3)">Cargando datos…</td></tr>';
+  const range = encodeURIComponent(SHEET_TAB + '!A:M');
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?key=${API_KEY}`;
+  try {
+    const res = await fetch(url, {
+      headers: accessToken ? { Authorization: 'Bearer ' + accessToken } : {}
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    const rows = (json.values || []).slice(1).filter(r => r && r.length > 1);
+    datos = rows.map((r, i) => ({
+      rowIdx: i + 2,
+      fecha:     (r[0]||'').trim(),
+      inspector: (r[1]||'').trim(),
+      origen:    (r[2]||'').trim(),
+      maquina:   (r[3]||'').trim(),
+      molde:     (r[4]||'').trim(),
+      problema:  (r[5]||'').trim(),
+      prioridad: (r[6]||'').trim(),
+      tecnico:   (r[7]||'').trim(),
+      estRep:    (r[8]||'').trim(),
+      estado:    (r[9]||'').trim(),
+      fechaIni:  toInputDate((r[10]||'').trim()),
+      fechaFin:  toInputDate((r[11]||'').trim()),
+      notas:     (r[12]||'').trim(),
+    }));
+    document.getElementById('footer-time').textContent =
+      'Actualizado ' + new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+    poblarFiltros();
+    render();
+    requestAnimationFrame(()=>{ ajustarTheadTop(); setTimeout(ajustarTheadTop,300); });
+  } catch(e) {
+    document.getElementById('tbody').innerHTML =
+      `<tr class="empty-row"><td colspan="14" style="color:var(--alta)">Error al cargar: ${e.message}</td></tr>`;
+  }
+}
+
+// ── SAVE CELL ────────────────────────────────────────────
+async function guardarCelda(rowIdx, colIdx, valor) {
+  if (!accessToken) { showToast('Debes iniciar sesión para editar', true); return; }
+  setSaving(true);
+  const colLetra = String.fromCharCode(65 + colIdx);
+  const range = `${SHEET_TAB}!${colLetra}${rowIdx}`;
+  try {
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ range, majorDimension: 'ROWS', values: [[valor]] })
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'HTTP ' + res.status);
+    }
+    showToast('Guardado en Sheets ✓');
+  } catch(e) {
+    showToast('Error al guardar: ' + e.message, true);
+  } finally {
+    setSaving(false);
+  }
+}
+
+// ── FILTERS ──────────────────────────────────────────────
+function poblarFiltros() {
+  const selI = document.getElementById('f-inspector');
+  const selO = document.getElementById('f-origen');
+  const selMa= document.getElementById('f-maquina');
+  const selM = document.getElementById('f-molde');
+  const selT = document.getElementById('f-tecnico');
+  while(selI.options.length>1) selI.remove(1);
+  while(selO.options.length>1) selO.remove(1);
+  while(selMa.options.length>1) selMa.remove(1);
+  while(selM.options.length>1) selM.remove(1);
+  while(selT.options.length>2) selT.remove(2);
+
+  [...new Set(datos.map(d=>d.inspector))].filter(Boolean).sort()
+    .forEach(v=>{ const o=document.createElement('option'); o.value=o.textContent=v; selI.appendChild(o); });
+  [...new Set(datos.map(d=>d.origen))].filter(Boolean).sort()
+    .forEach(v=>{ const o=document.createElement('option'); o.value=o.textContent=v; selO.appendChild(o); });
+  [...new Set(datos.map(d=>d.maquina))].filter(Boolean).sort()
+    .forEach(v=>{ const o=document.createElement('option'); o.value=o.textContent=v; selMa.appendChild(o); });
+  [...new Set(datos.map(d=>d.molde))].filter(Boolean).sort()
+    .forEach(v=>{ const o=document.createElement('option'); o.value=o.textContent=v; selM.appendChild(o); });
+  TECNICOS.forEach(v=>{ const o=document.createElement('option'); o.value=o.textContent=v; selT.appendChild(o); });
+}
+
+function getFilters() {
+  return {
+    inspector: document.getElementById('f-inspector').value,
+    origen:    document.getElementById('f-origen').value,
+    maquina:   document.getElementById('f-maquina').value,
+    molde:     document.getElementById('f-molde').value,
+    tecnico:   document.getElementById('f-tecnico').value,
+    prioridad: document.getElementById('f-prioridad').value,
+    estado:    document.getElementById('f-estado').value,
+    buscar:    document.getElementById('f-buscar').value.toLowerCase().trim()
+  };
+}
+
+function filtrar(f) {
+  return datos.filter(d => {
+    if (f.inspector && d.inspector !== f.inspector) return false;
+    if (f.origen && d.origen !== f.origen) return false;
+    if (f.maquina && d.maquina !== f.maquina) return false;
+    if (f.molde && d.molde !== f.molde) return false;
+    if (f.tecnico === '__sin__' && d.tecnico) return false;
+    if (f.tecnico && f.tecnico !== '__sin__' && d.tecnico !== f.tecnico) return false;
+    if (f.prioridad === '__sin__' && d.prioridad) return false;
+    if (f.prioridad && f.prioridad !== '__sin__' && d.prioridad !== f.prioridad) return false;
+    if (f.estado && d.estado !== f.estado) return false;
+    if (f.buscar && !d.molde.toLowerCase().includes(f.buscar) && !d.problema.toLowerCase().includes(f.buscar)) return false;
+    return true;
+  });
+}
+
+function limpiarFiltros() {
+  ['f-inspector','f-origen','f-maquina','f-molde','f-tecnico','f-prioridad','f-estado'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-buscar').value='';
+  render();
+}
+
+// ── SORT ─────────────────────────────────────────────────
+function sortBy(col) {
+  sortDir = sortCol===col ? sortDir*-1 : 1;
+  sortCol = col;
+  document.querySelectorAll('th').forEach(th=>th.classList.remove('sorted'));
+  const idx={fecha:1,inspector:2,origen:3,maquina:4,molde:5,prioridad:7};
+  if(idx[col]!=null) document.querySelectorAll('th')[idx[col]].classList.add('sorted');
+  render();
+}
+
+// ── RENDER ───────────────────────────────────────────────
+function render() {
+  const f = getFilters();
+  let list = filtrar(f);
+  list.sort((a,b)=>{
+    if(sortCol==='fecha') return (parseFecha(a.fecha)-parseFecha(b.fecha))*sortDir;
+    if(sortCol==='prioridad') return (priOrder(a.prioridad)-priOrder(b.prioridad))*sortDir;
+    return ((a[sortCol]||'').localeCompare(b[sortCol]||''))*sortDir;
+  });
+
+  const total = datos.length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-alta').textContent = datos.filter(d=>d.prioridad==='P. Alta').length;
+  document.getElementById('stat-ni').textContent = datos.filter(d=>d.estado==='No iniciada').length;
+  document.getElementById('stat-sinasig').textContent = datos.filter(d=>!d.tecnico).length;
+  document.getElementById('footer-count').textContent =
+    list.length===total ? `${total} registros` : `${list.length} de ${total} registros`;
+
+  const canEdit = !!accessToken;
+  const tbody = document.getElementById('tbody');
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="14">Sin resultados.</td></tr>';
+    return;
+  }
+
+  const priOpts = ['','P. Alta','P. Media','P. Baja','P.0'];
+  const estOpts = ['','No iniciada','En curso','Bloqueada','Completada'];
+  const repOpts = ['','Pendiente','Solicitado','Recibido','No requiere'];
+  const tecOpts = ['', ...TECNICOS];
+
+  tbody.innerHTML = list.map((d,i) => {
+    const priC = d.prioridad==='P. Alta'?'pri-alta':d.prioridad==='P. Media'?'pri-media':d.prioridad==='P. Baja'?'pri-baja':d.prioridad==='P.0'?'pri-p0':'';
+    const estC = d.estado==='No iniciada'?'est-ni':d.estado==='En curso'?'est-curso':d.estado==='Bloqueada'?'est-bloq':d.estado==='Completada'?'est-done':'';
+
+    if (!canEdit) {
+      return `<tr>
+        <td class="num">${i+1}</td>
+        <td class="fecha">${esc(d.fecha)}</td>
+        <td class="inspector">${esc(d.inspector)}</td>
+        <td class="inspector">${esc(d.origen)}</td>
+        <td class="inspector">${esc(d.maquina)}</td>
+        <td class="molde${CRITICOS.has(d.molde)?' critico':''}">${esc(d.molde)}</td>
+        <td class="ro">${esc(d.problema)}</td>
+        <td><span class="badge-pri ${priC}">${esc(d.prioridad)||'—'}</span></td>
+        <td class="inspector">${esc(d.tecnico)||'—'}</td>
+        <td class="inspector">${esc(d.estRep)||'—'}</td>
+        <td><span class="badge-est ${estC}">${esc(d.estado)||'—'}</span></td>
+        <td class="fecha">${esc(d.fechaIni)}</td>
+        <td class="fecha">${esc(d.fechaFin)}</td>
+        <td class="ro">${esc(d.notas)}</td>
+      </tr>`;
+    }
+
+    const ri = d.rowIdx;
+    const mkSel = (field, opts, val, extraClass) => {
+      const cls = extraClass ? `cell-select ${extraClass}` : 'cell-select';
+      return `<select class="${cls}" onchange="onCellChange(this,${ri},${COL[field]},event)">
+        ${opts.map(o=>`<option value="${esc(o)}" ${val===o?'selected':''}>${o||'—'}</option>`).join('')}
+      </select>`;
+    };
+    const mkTxt = (field, val, placeholder) =>
+      `<input type="text" class="cell-edit" value="${esc(val)}" placeholder="${placeholder||''}"
+        onblur="onCellChange(this,${ri},${COL[field]},event)"
+        onkeydown="if(event.key==='Enter'){this.blur();}">`;
+    const mkDate = (field, val) =>
+      `<input type="date" class="cell-edit" value="${esc(val)}"
+        onchange="onCellChange(this,${ri},${COL[field]},event)">`;
+
+    const tecVal = d.tecnico ? 'tec-val' : '';
+
+    return `<tr>
+      <td class="num">${i+1}</td>
+      <td class="fecha">${esc(d.fecha)}</td>
+      <td class="inspector">${esc(d.inspector)}</td>
+      <td class="inspector">${esc(d.origen)}</td>
+      <td class="inspector">${esc(d.maquina)}</td>
+      <td class="molde${CRITICOS.has(d.molde)?' critico':''}">${esc(d.molde)}</td>
+      <td class="ro">${esc(d.problema)}</td>
+      <td style="min-width:100px">${mkSel('prioridad', priOpts, d.prioridad, priC)}</td>
+      <td style="min-width:140px">${mkSel('tecnico', tecOpts, d.tecnico, tecVal)}</td>
+      <td style="min-width:120px">${mkSel('estRep', repOpts, d.estRep, '')}</td>
+      <td style="min-width:110px">${mkSel('estado', estOpts, d.estado, estC)}</td>
+      <td style="min-width:130px">${mkDate('fechaIni', d.fechaIni)}</td>
+      <td style="min-width:130px">${mkDate('fechaFin', d.fechaFin)}</td>
+      <td style="min-width:160px">${mkTxt('notas', d.notas, 'Agregar nota…')}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CELL CHANGE ──────────────────────────────────────────
+function onCellChange(el, rowIdx, colIdx, event) {
+  let valor = el.value;
+  if (colIdx === COL.fechaIni || colIdx === COL.fechaFin) {
+    valor = toSheetsDate(valor);
+  }
+  const d = datos.find(x=>x.rowIdx===rowIdx);
+  if (d) {
+    const fieldMap = Object.entries(COL).find(([,v])=>v===colIdx);
+    if (fieldMap) d[fieldMap[0]] = el.value;
+
+    if (colIdx === COL.prioridad) {
+      const c = el.value==='P. Alta'?'pri-alta':el.value==='P. Media'?'pri-media':el.value==='P. Baja'?'pri-baja':el.value==='P.0'?'pri-p0':'';
+      el.className = 'cell-select ' + c;
+    }
+    if (colIdx === COL.estado) {
+      const c = el.value==='No iniciada'?'est-ni':el.value==='En curso'?'est-curso':el.value==='Bloqueada'?'est-bloq':el.value==='Completada'?'est-done':'';
+      el.className = 'cell-select ' + c;
+    }
+    if (colIdx === COL.tecnico) {
+      el.className = 'cell-select' + (el.value?' tec-val':'');
+    }
+    document.getElementById('stat-alta').textContent = datos.filter(x=>x.prioridad==='P. Alta').length;
+    document.getElementById('stat-ni').textContent = datos.filter(x=>x.estado==='No iniciada').length;
+    document.getElementById('stat-sinasig').textContent = datos.filter(x=>!x.tecnico).length;
+  }
+  guardarCelda(rowIdx, colIdx, valor);
+}
+
+// ── THEAD TOP ────────────────────────────────────────────
+function ajustarTheadTop() {
+  const toolbar = document.querySelector('.toolbar');
+  if (!toolbar) return;
+  document.querySelector('thead').style.top = Math.round(toolbar.getBoundingClientRect().bottom) + 'px';
+}
+
+// ── RELOAD & CSV ─────────────────────────────────────────
+function recargar() {
+  poblarFiltros();
+  cargar();
+}
+
+function guardarCSV() {
+  const f = getFilters();
+  const list = filtrar(f);
+  const cols = ['Fecha','Reportado Por','Origen','Máquina','Molde','Problema','Prioridad','Técnico','Est. Repuestos','Estado','Fecha Inicio','Fecha Fin','Notas'];
+  const csv = [cols.join(';'), ...list.map(d=>
+    [d.fecha,d.inspector,d.origen,d.maquina,d.molde,d.problema,d.prioridad,d.tecnico,d.estRep,d.estado,d.fechaIni,d.fechaFin,d.notas]
+      .map(v=>`"${(v||'').replace(/"/g,'""')}"`)
+      .join(';')
+  )].join('\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download='reporte_fallas.csv'; a.click();
+}
+
+// ── INIT ─────────────────────────────────────────────────
+window.onload = function() {
+  cargar();
+  ['f-inspector','f-origen','f-maquina','f-molde','f-tecnico','f-prioridad','f-estado'].forEach(id =>
+    document.getElementById(id).addEventListener('change', render));
+  document.getElementById('f-buscar').addEventListener('input', render);
+  requestAnimationFrame(()=>{ ajustarTheadTop(); setTimeout(ajustarTheadTop,300); });
+  window.addEventListener('resize', ajustarTheadTop);
+};
+</script>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" onload="initGoogleAuth()" async defer></script>
+</body>
+</html>
