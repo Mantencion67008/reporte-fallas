@@ -294,7 +294,7 @@ const COL = { prioridad:6, tecnico:7, estRep:8, estado:9, fechaIni:10, fechaFin:
 
 // ── STATE ────────────────────────────────────────────────
 let tokenClient, accessToken = null;
-let datos = [], sortCol = 'fecha', sortDir = 1;
+let datos = [], sortCol = 'fecha', sortDir = -1;
 
 // ── DATE HELPERS ─────────────────────────────────────────
 function toInputDate(s) {
@@ -510,14 +510,16 @@ function limpiarFiltros() {
 function sortBy(col) {
   sortDir = sortCol===col ? sortDir*-1 : 1;
   sortCol = col;
-  document.querySelectorAll('th').forEach(th=>th.classList.remove('sorted'));
-  const idx={fecha:1,inspector:2,origen:3,maquina:4,molde:5,prioridad:7};
-  if(idx[col]!=null) document.querySelectorAll('th')[idx[col]].classList.add('sorted');
   render();
 }
 
 // ── RENDER ───────────────────────────────────────────────
 function render() {
+  // Marcar columna ordenada activa
+  document.querySelectorAll('th').forEach(th=>th.classList.remove('sorted'));
+  const idxMap={fecha:1,inspector:2,origen:3,maquina:4,molde:5,prioridad:7};
+  if(idxMap[sortCol]!=null) document.querySelectorAll('th')[idxMap[sortCol]].classList.add('sorted');
+
   const f = getFilters();
   let list = filtrar(f);
   list.sort((a,b)=>{
