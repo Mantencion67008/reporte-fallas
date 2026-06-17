@@ -287,9 +287,9 @@ const CRITICOS = new Set([
   'Papelero v/v 7 lts. - Base','Papelero v/v 7 lts. - Tapa Recta','Papelero v/v 7 lts. - Vaiven',
 ]);
 
-// Columnas (0-based): A=0 fecha, B=1 inspector(reportado por), C=2 origen,
-// D=3 maquina, E=4 molde, F=5 problema, G=6 prioridad, H=7 tecnico,
-// I=8 estRep, J=9 estado, K=10 fechaIni, L=11 fechaFin, M=12 notas
+// Columnas (0-based): A=0 fecha, B=1 inspector, C=2 origen,
+// D=3 maquina, E=4 problema, F=5 molde, G=6 prioridad,
+// H=7 tecnico, I=8 estRep, J=9 estado, K=10 fechaIni, L=11 fechaFin, M=12 notas
 const COL = { prioridad:6, tecnico:7, estRep:8, estado:9, fechaIni:10, fechaFin:11, notas:12 };
 
 // ── STATE ────────────────────────────────────────────────
@@ -399,8 +399,8 @@ async function cargar() {
       inspector: (r[1]||'').trim(),
       origen:    (r[2]||'').trim(),
       maquina:   (r[3]||'').trim(),
-      molde:     (r[4]||'').trim(),
-      problema:  (r[5]||'').trim(),
+      problema:  (r[4]||'').trim(),
+      molde:     (r[5]||'').trim(),
       prioridad: (r[6]||'').trim(),
       tecnico:   (r[7]||'').trim(),
       estRep:    (r[8]||'').trim(),
